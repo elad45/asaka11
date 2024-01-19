@@ -3,8 +3,8 @@ from collections import defaultdict
 import sys
 
 
-def conflicts_handler(content, package_name):
-    for i in range(1, len(content)):
+def conflicts_handler(content, package_name, var_map, solver):
+    for i in range(len(content)):
         if "Conflicts" in content[i]:
             conflicts_line = content[i]
             break
@@ -18,7 +18,7 @@ def conflicts_handler(content, package_name):
         solver.add_assertion(Or(Not(var_map[package_name]), Not(var_map[conflict])))
 
 
-def create_and_expression(expressions):
+def make_and_expression(expressions):
     if len(expressions) == 0:
         return None
     if len(expressions) == 1:
@@ -27,7 +27,7 @@ def create_and_expression(expressions):
         return And(*expressions)
 
 
-def create_or_expression(vars_arr):
+def make_or_expression(vars_arr):
     if len(vars_arr) == 0:
         return None
     if len(vars_arr) == 1:
@@ -44,20 +44,19 @@ def prepare_asserts(depends_arr, var_map):
             names.strip()
             var_map[names] = Symbol(names, BOOL)
             vars_arr.append(Symbol(names, BOOL))
-        or_expression = create_or_expression(vars_arr)
+        or_expression = make_or_expression(vars_arr)
         and_expression.append(or_expression)
-
-    and_expression = create_and_expression(and_expression)
+    and_expression = make_and_expression(and_expression)
     return and_expression
 
 
 def depends_handler(content, package_name, var_map, solver):
-    if len(content) > 1 and "Depends" in content[1]:
-        depends_line = content[1].replace('Depends:', '').strip()
-        depends_arr = [dep.strip() for dep in depends_line.split(',')]
-        asserts = prepare_asserts(depends_arr, var_map)
-        solver.add_assertion(Or(Not(var_map[package_name]), asserts))
-
+    for i in range(len(content)):
+        if "Depends" in content[i]:
+            depends_line = content[i].replace('Depends:', '').strip()
+            depends_arr = [dep.strip() for dep in depends_line.split(',')]
+            asserts = prepare_asserts(depends_arr, var_map)
+            solver.add_assertion(Or(Not(var_map[package_name]), asserts))
 
 def process_package_data(block, var_map, solver):
     content = block.split('\n')
@@ -65,7 +64,7 @@ def process_package_data(block, var_map, solver):
     if var_map.get(package_name) is None:
         var_map[package_name] = Symbol(package_name, BOOL)
     depends_handler(content, package_name, var_map, solver)
-    conflicts_handler(content, package_name)
+    conflicts_handler(content, package_name, var_map, solver)
 
 
 """
@@ -83,6 +82,7 @@ def process_packages(blocks_arr, var_map, solver):
 
 
 def install_assert(install_names, var_map, solver):
+
     for name in install_names:
         name=name.strip()
         var_map[name] = Symbol(name, BOOL)
@@ -112,6 +112,7 @@ if __name__ == "__main__":
     solver = Solver(name="z3")
     # blocks_arr is all the blocks except for the installation, install_names is the last line we want to install
     blocks_arr, install_names = parse_input(sys.argv[1])
+
     # adds install_names to assert
     install_assert(install_names, var_map, solver)
 
