@@ -67,15 +67,6 @@ def process_package_data(block, var_map, solver):
     conflicts_handler(content, package_name, var_map, solver)
 
 
-"""
-    if len(content) > 1 and "Depends" in content[1]:
-        depends_line = content[1].replace('Depends:', '').strip()
-        depends_arr = [dep.strip() for dep in depends_line.split(',')]
-        asserts = prepare_asserts(depends_arr, var_map, solver)
-        solver.add_assertion(Or(Not(var_map[package_name]), asserts))
-"""
-
-
 def process_packages(blocks_arr, var_map, solver):
     for block in blocks_arr:
         process_package_data(block, var_map, solver)
